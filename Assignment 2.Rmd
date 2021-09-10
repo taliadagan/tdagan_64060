@@ -1,5 +1,5 @@
 ---
-title: Assignment 2 Machine Learning
+title: Assignment 1 Machine Learning
 #data from Business Analytics 1 Lab file Tech Sales Rep
 ---
 
