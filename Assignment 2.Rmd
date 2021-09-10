@@ -1,0 +1,42 @@
+---
+title: Assignment 2 Machine Learning
+#data from Business Analytics 1 Lab file Tech Sales Rep
+---
+
+```{r}
+getwd()
+setwd("/Users/taliadagan/Desktop/Business Analytics 1")
+
+#Import the dataset into R
+Myfile <- read.csv("Tech Sales Reps 2.csv")
+head(Myfile)
+
+```
+#Print out descriptive statistics for a selection of quantitative and categorical variables.
+```{r}
+FTable <- table (Myfile$College)
+FTable 
+FTable <- table (Myfile$Personality)
+FTable 
+FTable <- table (Myfile$Business)
+FTable 
+
+summary(Myfile)
+
+```
+
+#Transform at least one variable. It doesn't matter what the transformation is.
+```{r}
+Myfile$Female=as.factor(Myfile$Female)
+
+#Plot at least one quantitative variable, and one scatterplot
+hist ( Myfile$Salary )
+
+plot(Myfile$Age,Myfile$Salary)
+
+```
+
+
+
+
+
