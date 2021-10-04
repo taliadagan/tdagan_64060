@@ -1,0 +1,132 @@
+---
+title: "Assignment 2 ML"
+output:
+  word_document: default
+  pdf_document: default
+---
+getwd()
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+library(class)
+library(dplyr)
+library(tidyverse)
+library(ISLR)
+library(dummies)
+library(caret)
+
+
+## R Markdown
+```{r}
+
+Myfile <- read.csv("UniversalBank.csv")
+
+```
+#transform categorical predictors with more than two categories into dummy variables first
+```{r}
+library(dummies)
+library(dplyr)
+library(class)
+Myfile$Education <-as.factor(Myfile$Education)
+#remove ID and ZIP 
+df= dummy.data.frame (select(Myfile, -c(ZIP.Code,ID)))
+df$Personal.Loan <-as.factor(df$Personal.Loan)
+df$CCAvg <-as.integer(df$CCAvg)
+df
+
+```
+#remove ID & Zip Code
+#partion the data (60% training and validation 40%)
+```{r}
+library(caret)
+library(FNN)
+library(class)
+library(dplyr)
+library(ISLR)
+
+set.seed(1)
+train_index = sample (row.names(df),0.6*dim(df)[1])
+test.index <- setdiff(row.names(df),train_index)
+
+train_Data = df[train_index,]
+Validation_Data= df[test.index,]
+
+#Constraints
+Constraints =data.frame(Age =as.integer(40), Experience =as.integer(10), Income = as.integer(84), Family = as.integer(2), CCAvg =as.integer(2), Education1 =as.integer(0), Education2 =as.integer(1), Education3 = as.integer(0), Mortgage = as.integer(0), Securities.Account = as.integer(0), CD.Account = as.integer(0), Online = as.integer(1), CreditCard = as.integer(1))
+
+normal <- preProcess(train_Data[,-c(10)], method=c("center","scale"))   
+normal
+train_Data <- predict(normal,train_Data)
+Validation_Data <- predict(normal,Validation_Data)
+Constraints <- predict(normal,Constraints)
+
+K1 <-knn(train=train_Data[,-c(10)],test=Constraints,cl=train_Data[,10], k=1, prob = TRUE)
+knn.attributes <- attributes(K1)
+knn.attributes[3]
+```
+#choice of k that balances overfitting and ignoring the predictor
+
+```{r}
+bestk <- data.frame(k = seq(1,10,1), accuracy = rep(0,10))
+
+for(i in 1:10) {
+  K2 <- knn(train = train_Data[,-10],test = Validation_Data[,-10], cl = train_Data[,10], k=i, prob=TRUE)
+  bestk[i, 2] <- confusionMatrix(K2, as.factor(Validation_Data$Personal.Loan))$overall[1] # loop to generate accuracy for k values from 1 to 10
+}
+bestk
+
+```
+
+
+#3 Confusion matrix 
+```{r}
+library(caret)
+library(class)
+K2 <-knn(train=train_Data[,-10],test=Validation_Data[,-10],cl=train_Data[,10], prob = TRUE)
+confusionMatrix(K2, as.factor(Validation_Data$Personal.Loan))
+
+
+```
+`
+
+#Consider the following customer: Age = 40, Experience = 10, Income = 84,Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1 and Credit Card = 1. Classify the customer using the best k.
+```{r}
+Customer.df =data.frame(Age =40, Experience = (10), Income = (84), Family = (2), CCAvg = (2), Education1 = (0), Education2 = (1), Education3 = (0), Mortgage = (0), Securities.Account = (0), CD.Account = (0), Online = (1), CreditCard = (1))
+K4 <- knn(train = train_Data[,-10],test = Customer.df, cl = train_Data[,10], k=3, prob=TRUE)
+K4
+```
+
+#Repartion the data (50% training and validation 30% and 20%)
+```{r}
+
+library(caret)
+set.seed(100)
+#partition 50% of training
+train_index = sample (row.names(df),0.5*dim(df))
+#partition 30% validations
+valid.index <- sample(setdiff(rownames(df),train_index),0.3*dim(df))
+test.index <- setdiff(row.names(df),train_index)
+
+
+train_Data = df[train_index,]
+Validation_Data= df[valid.index,]
+Test_data=df[test.index,]
+                
+normal <- preProcess(train_Data[,-c(10)], method=c("center","scale"))   
+normal
+train_Data[,-c(10)] <- predict(normal,train_Data[,-c(10)] )
+Validation_Data[,-c(10)] <- predict(normal,Validation_Data[,-c(10)])
+Test_data[,-c(10)] <- predict(normal, Test_data[,-c(10)])
+Constraints <- predict(normal,Constraints)
+
+
+
+K3T <-knn(train=train_Data[,-c(10)],test=train_Data[,-c(10)],cl=train_Data[,10], k=5, prob = TRUE)
+K4V <-knn(train=train_Data[,-c(10)],test= Validation_Data[,-c(10)],cl=train_Data[,10], k=5, prob = TRUE)
+K5TT <-knn(train=train_Data[,-c(10)],test=Test_data[,-c(10)],cl=train_Data[,10], k=5, prob = TRUE)
+confusionMatrix(K3T,train_Data[,10])
+confusionMatrix(K4V,Validation_Data[,10])
+confusionMatrix(K5TT,Test_data[,10])
+```
+
