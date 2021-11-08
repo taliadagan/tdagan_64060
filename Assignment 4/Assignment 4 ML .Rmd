@@ -1,0 +1,107 @@
+---
+title: "Assignment 4 Machine Learning"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+library(caret)
+library(dcast)
+library(reshape)
+library(e1071)
+library(naivebayes)
+library(klaR)
+library(bnclassify)
+library(rmarkdown)
+library(tinytex)
+library(cluster)
+library(factoextra)
+
+#Reading the Pharmaceutical data set 
+```{r}
+Myfile <- read.csv("Pharmaceuticals.csv")
+head(Myfile)
+```
+
+```{r}
+X <- Myfile[,3:11]
+head(X)
+#scale quantitative variables
+scale <- scale(X)
+head(scale)
+
+##1 Use only the numerical variables (1 to 9) to cluster the 21 firms. Justify the various choices made in conducting the cluster analysis, such as weights for different variables, the specific clustering algorithm(s) used, the number of clusters formed, and so on. 
+library(factoextra)
+#Using the elbow method and silhouette method to cluster
+fviz_nbclust(scale, kmeans, method= "wss") + labs(subtitle = "Elbow Method")
+
+fviz_nbclust(scale, kmeans, method = "silhouette") + labs(subtitle = "Silhouette Method")
+
+```
+
+##Looking at the plots produced above in the silhouette method you can see that 5 clusters are appropriate. I choose to use the silhoette method because the k value is more clear at 5. 
+```{r}
+#Using the silhouette method to produce a cluster plot
+set.seed(10)
+kmeans5 <- kmeans(scale,centers=5,nstart=25)
+kmeans5$centers 
+
+#5 clusters, data must be fitted to 
+fitkmeans<- kmeans(scale,5)
+```
+```{r}
+library(cluster)
+aggregate(scale,by=list(fitkmeans$cluster), FUN=mean)
+Y <- data.frame(scale,fitkmeans$cluster)
+Y
+fviz_cluster(kmeans5, data = scale)
+#visualize the cluster
+clusplot(scale,fitkmeans$cluster, color = TRUE, shade = TRUE, labels= 2, lines = 0)
+```
+
+##2 Interpret the clusters with respect to the numerical variables used in forming the clusters.
+```{r}
+#Cluster 1: rows 1, 4, 7, 10, 11, 13, 15, 16, 17,  19, 21
+#Cluster 2: row 8
+#Cluster 3: rows 2, 6, 18
+#Cluster 4: rows 3, 5, 12, 20
+#Cluster 5: rows 9, 14
+
+# Analyzing the clusters in respect to the mean
+#Cluster 1 has the highest market cap, highest ROE, highest ROA, highest asset turnover, and the highest net profit margin. 
+#Cluster 2 has the lowest market cap, lowest asset turnover, highest leverage, and the lowest rev growth.
+#Cluster 3 has the highest PE ratio, lowest ROE, lowest ROA, lowest leverage, and the lowest net profit margin. 
+#Cluster 4 has the lowest beta.  
+#Cluster 5 has the highest beta, lowest PE ratio, and the highest rev growth. 
+```
+
+##3 Is there a pattern in the clusters with respect to the numerical variables (10 to 12)? (those not used in forming the clusters) 
+```{r}
+#Using the clusters and the .csv file I can conclude that: 
+#Cluster 1 has a majority hold recommendation. 
+#Cluster 2 has majority moderate buy.
+#Cluster 3 has majority hold.
+#Cluster 4 has equal on strong buy, moderate buy, hold, moderate sell. 
+#Cluster 5 has equal moderate sell and moderate buy. 
+
+#The pattern that I see in respect to the numerical variables is that Cluster 1 and Cluster 3 have a majority of hold recommendation. Cluster 2 and 5 have a majority of the moderate buy. 
+```
+
+
+##4 Provide an appropriate name for each cluster using any or all of the variables in the dataset.
+```{r}
+# Cluster 1 new name = High Market cap, ROE, ROA, asset turnover, and net profit margin. 
+# Cluster 2 new name= lowest market cap, asset turnover, rev growth and highest leverage.
+# Cluster 3 new name= highest PE ratio, lowest ROE,  ROA,  leverage, and net profit margin
+# Cluster 4 new name= lowest beta. 
+# Cluster 5 new name= highest rev growth, beta and lowest PE ratio. 
+```
+
+
+
