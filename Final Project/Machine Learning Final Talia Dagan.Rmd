@@ -1,0 +1,189 @@
+---
+title: "ML"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading the packages 
+```{r}
+library(dplyr)
+library(tidyr)
+library(broom)
+library(purrr)
+library(ggplot2)
+library(plotly)
+library(rgdal)
+library(leaflet)
+library(RColorBrewer)
+library(colorRamps)
+library(maps)
+library(mapproj)
+library(formattable)
+library(spdep)
+```
+
+#Reading the London Crime Dataset 
+```{r}
+Myfile <- read.csv('london_crime_by_lsoa.csv')
+summary(Myfile)
+
+```
+
+
+
+#Clustering using Hierarchial Clustering 
+```{r}
+library(sp)
+library(rgdal)
+library(geosphere)
+
+#Removing missing values from the dataset
+X <- na.omit(Myfile)
+xy <- X[,8:9]
+
+#converting points into a spatialpoints data frame
+spdf <- SpatialPointsDataFrame(coords = xy, data = X,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+# use the distm function to generate a geodesic distance matrix in meters
+mdist <- distm(spdf)
+
+
+# cluster all points using hierarchical clustering 
+hc <- hclust(as.dist(mdist), method="complete")
+hc
+# define the distance threshold, in this case an average of 500
+d=1000
+# define clusters based on a tree "height" cutoff "d" and add them to the SpDataFrame
+spdf$clust <- cutree(hc, h=d)
+```
+
+
+```{r}
+#visualizing the spatial data 
+library(sp) 
+library(rgdal)
+data(spdf) 
+coordinates(spdf) 
+# by default plots the points
+plot(spdf) 
+cc <- coordinates(spdf) 
+m.sl <- SpatialLines(list(Lines(list(Line(cc)), "line1"))) 
+# plots lines connecting all the points
+plot(m.sl) 
+
+```
+
+
+ 
+```{r}
+library(dismo)
+library(rgeos)
+# expand the extent of plotting frame
+spdf@bbox[] <- as.matrix(extend(extent(spdf),0.01))
+
+# get the centroid coords for each cluster
+cent <- matrix(ncol=2, nrow=max(spdf$clust))
+for (i in 1:max(spdf$clust))
+    # Centroid from the rgeos package
+    cent[i,] <- gCentroid(subset(spdf, clust == i))@coords
+
+# compute circles around the centroid coords using a 1000 m radius from the dismo package
+ci <- circles(cent, d=d, lonlat=T)
+
+# plot
+plot(ci@polygons, axes=T)
+plot(spdf, col=rainbow(4)[factor(spdf$clust)], add=T)
+```
+
+```{r}
+#Plotting the dendrogram 
+plot(hc, cex = 0.65, hang = -1, main = "Dendrogram of Coordinates")
+```
+
+##Based on the dendrogram, you can see that 7 clusters are appropriate for this data set. 
+
+```{r}
+#plotting dendrogram
+plot(hc, cex = .5)
+rect.hclust(hc, k=7, border= 1:7)
+
+#Using cutree to identify the clusters
+clust <- cutree(hc, k=7)
+table(clust)
+```
+##Clustering using K-Means method.
+```{r}
+library(caret)
+library(reshape)
+library(e1071)
+library(naivebayes)
+library(klaR)
+library(bnclassify)
+library(rmarkdown)
+library(tinytex)
+library(cluster)
+library(factoextra)
+library(NbClust)
+
+#determining the number of clusters  using elbow and silhouette method
+
+fviz_nbclust(xy, kmeans, method= "wss") + labs(subtitle = "Elbow Method")
+
+fviz_nbclust(xy, kmeans, method = "silhouette") + labs(subtitle = "Silhouette Method")
+
+```
+
+
+```{r}
+##Looking at the plots produced above in the silhouette method you can see that 5 clusters are appropriate. 
+set.seed(100)
+kmeans <- kmeans(xy,centers=5,nstart=25)
+kmeans$centers 
+```
+
+
+
+```{r}
+#5 clusters, data must be fitted to 
+fitkmeans<- kmeans(xy,5)
+library(cluster)
+Y <- data.frame(xy,fitkmeans$cluster)
+Y
+fviz_cluster(kmeans, data = xy)
+#visualizing the clusters 
+clusplot(xy,fitkmeans$cluster, color = TRUE, shade = TRUE, labels= 2, lines = 0)
+#mean of longitude and latitude for each cluster using aggregate function 
+eachpoint <- aggregate(xy, by=list(fitkmeans$cluster), FUN=mean)
+eachpoint
+```
+
+```{r}
+#Using ggpmap to visualize 
+library(ggmap)
+
+#Getting the API key
+api <- "AIzaSyCMcVp83BTwhbYzRtnFHIj1wQWce6gyduE"
+
+#registering a google key`
+register_google(key= api)
+
+#loading a London map for visualization
+LondonMap <- get_map("London", zoom= 11)
+ggmap(LondonMap)
+
+```
+
+
+
+
+
+
+
+
+
